@@ -8,7 +8,7 @@ import '../constants/app_constants.dart';
 import '../utils/logger.dart';
 
 class ApiHelper {
-  static Future<T> postMultipartRequest<T>(
+  Future<T> postMultipartRequest<T>(
       {required String endpoint,
       required Map<String, String> data,
       required List<UploadFile> files,
@@ -54,7 +54,7 @@ class ApiHelper {
     }
   }
 
-  static Future<T> getData<T>(String endpoint, {ResponseType? responseType = ResponseType.json}) async {
+  Future<T> getData<T>(String endpoint, {ResponseType? responseType = ResponseType.json}) async {
     try {
       final Uri uri = Uri.parse('${AppConstants.apiUrl}/$endpoint');
       final String? token = await CacheRepository.instance.get('token');
@@ -82,7 +82,7 @@ class ApiHelper {
     }
   }
 
-  static Future<T> postData<T>(String endpoint, Map data, {ResponseType? responseType = ResponseType.json}) async {
+  Future<T> postData<T>(String endpoint, Map data, {ResponseType? responseType = ResponseType.json}) async {
     try {
       final Uri uri = Uri.parse('${AppConstants.apiUrl}/$endpoint');
       final String? token = await CacheRepository.instance.get('token');
@@ -114,7 +114,7 @@ class ApiHelper {
     }
   }
 
-  static Future<Object> putData(String endpoint, Map data, {ResponseType? responseType = ResponseType.json}) async {
+  Future<Object> putData(String endpoint, Map data, {ResponseType? responseType = ResponseType.json}) async {
     try {
       final Uri uri = Uri.parse('${AppConstants.apiUrl}/$endpoint');
       final String? token = await CacheRepository.instance.get('token');
@@ -143,7 +143,7 @@ class ApiHelper {
     }
   }
 
-  static Future<Object> patchData(String endpoint, Map data, {ResponseType? responseType = ResponseType.json}) async {
+  Future<Object> patchData(String endpoint, Map data, {ResponseType? responseType = ResponseType.json}) async {
     try {
       final Uri uri = Uri.parse('${AppConstants.apiUrl}/$endpoint');
       final String? token = await CacheRepository.instance.get('token');
@@ -172,7 +172,7 @@ class ApiHelper {
     }
   }
 
-  static Future<Object> deleteData(String endpoint, {ResponseType? responseType = ResponseType.json}) async {
+  Future<Object> deleteData(String endpoint, {ResponseType? responseType = ResponseType.json}) async {
     try {
       final Uri uri = Uri.parse('${AppConstants.apiUrl}/$endpoint');
       final String? token = await CacheRepository.instance.get('token');
@@ -201,7 +201,7 @@ class ApiHelper {
     }
   }
 
-  static String parseError(String encoded) {
+  String parseError(String encoded) {
     final json = jsonDecode(encoded);
     return json['error'];
   }

@@ -1,266 +1,136 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' as Intl;
 
 import '../../../core/constants/app_colors.dart';
-import '../../widgets/primary_button.dart';
-import 'bookings_screen.dart'; // Import model/enum
+import '../../../data/models/booking.dart';
 
-// Provider to fetch specific booking details by ID (replace with actual logic)
-final bookingDetailsProvider = FutureProvider.autoDispose.family<BookingInfo?, String>((ref, bookingId) async {
-  // Simulate fetching booking details
-  await Future.delayed(const Duration(milliseconds: 500));
-  final allBookings = ref.read(bookingsProvider); // Use the dummy list for now
+// Provider to fetch details for a specific booking (Replace with API)
+final bookingDetailsProvider = FutureProvider.family.autoDispose<Booking?, String>((ref, bookingId) async {
+  // TODO: Implement API call to fetch booking details by bookingId
+  print("Fetching details for booking: $bookingId");
+  await Future.delayed(const Duration(seconds: 1));
+  // Dummy Data (Find the booking from the dummy list or return null):
+  final dummyList = [ // Replicate dummy data from BookingsScreen provider
+      Booking(id: 'bk1', bookingCode: 'ZN-12345', serviceName: 'صيانة دورية للمكيف', status: BookingStatus.completed, requestDate: DateTime.now().subtract(const Duration(days: 5)), address: 'الرياض، حي العليا', notes: 'المكيف في غرفة النوم الرئيسية'),
+      Booking(id: 'bk2', bookingCode: 'ZN-67890', serviceName: 'تركيب مكيف سبليت', status: BookingStatus.confirmed, requestDate: DateTime.now().subtract(const Duration(days: 2)), scheduledDate: DateTime.now().add(const Duration(days: 1)), scheduledTime: const TimeOfDay(hour: 14, minute: 0), serviceProviderName: 'فني: أحمد خالد'),
+      Booking(id: 'bk3', bookingCode: 'ZN-11223', serviceName: 'إصلاح أعطال كهربائية', status: BookingStatus.inProgress, requestDate: DateTime.now().subtract(const Duration(days: 1))),
+      Booking(id: 'bk4', bookingCode: 'ZN-44556', serviceName: 'طلب استشارة فنية', status: BookingStatus.pending, requestDate: DateTime.now()),
+      Booking(id: 'bk5', bookingCode: 'ZN-77889', serviceName: 'تنظيف مكيفات', status: BookingStatus.cancelled, requestDate: DateTime.now().subtract(const Duration(days: 10))),
+  ];
   try {
-    return allBookings.firstWhere((b) => b.id == bookingId);
+     return dummyList.firstWhere((b) => b.id == bookingId);
   } catch (e) {
-    return null; // Booking not found
+     return null; // Not found
   }
 });
 
+
 class BookingDetailsScreen extends ConsumerWidget {
   final String bookingId;
-
   const BookingDetailsScreen({super.key, required this.bookingId});
-
-  // Helper to get status style (can be moved to a common place)
-   Map<String, dynamic> _getStatusStyle(BookingStatus status) {
-     switch (status) {
-       case BookingStatus.upcoming:
-         return {'text': 'قادم', 'color': Colors.blue.shade700, 'icon': Icons.update};
-       case BookingStatus.completed:
-         return {'text': 'مكتمل', 'color': Colors.green.shade700, 'icon': Icons.check_circle_outline};
-       case BookingStatus.cancelled:
-         return {'text': 'ملغي', 'color': Colors.red.shade700, 'icon': Icons.cancel_outlined};
-     }
-   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bookingDetailsAsync = ref.watch(bookingDetailsProvider(bookingId));
+    final detailsAsyncValue = ref.watch(bookingDetailsProvider(bookingId));
     final textTheme = Theme.of(context).textTheme;
+    final dateFormat = Intl.DateFormat('EEEE، dd MMM yyyy', 'ar'); // Full date format
+    final timeFormat = Intl.DateFormat('hh:mm a', 'ar'); // Time format
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('تفاصيل الطلب'),
-      ),
-      body: bookingDetailsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('خطأ في تحميل التفاصيل: $error')),
-        data: (booking) {
-          if (booking == null) {
-            return const Center(child: Text('لم يتم العثور على الطلب.'));
-          }
-
-          final statusStyle = _getStatusStyle(booking.status);
-          final formattedDate = DateFormat('EEEE, d MMMM yyyy').format(booking.dateTime);
-          final formattedTime = DateFormat('h:mm a').format(booking.dateTime);
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- Service Name & Status ---
-                Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                     Expanded(
-                       child: Text(booking.serviceName, style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-                     ),
-                      Container(
-                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                       decoration: BoxDecoration(
-                         color: (statusStyle['color'] as Color).withOpacity(0.1),
-                         borderRadius: BorderRadius.circular(4),
-                       ),
-                       child: Row(
-                         mainAxisSize: MainAxisSize.min,
-                         children: [
-                           Icon(statusStyle['icon'] as IconData, color: statusStyle['color'] as Color, size: 16),
-                           const SizedBox(width: 5),
-                           Text(
-                             statusStyle['text'] as String,
-                             style: textTheme.bodyMedium?.copyWith(color: statusStyle['color'] as Color, fontWeight: FontWeight.bold)
-                           ),
-                         ],
-                       ),
-                     ),
-                  ],
-                ),
-                const Divider(height: 24),
-
-                // --- Date & Time ---
-                _buildDetailRow(
-                  context: context,
-                  icon: Icons.calendar_today_outlined,
-                  title: 'التاريخ والوقت',
-                  value: '$formattedDate\n$formattedTime', // Multi-line
-                ),
-                const SizedBox(height: 16),
-
-                 // --- Location --- (Placeholder)
-                _buildDetailRow(
-                  context: context,
-                  icon: Icons.location_on_outlined,
-                  title: 'الموقع',
-                  value: 'شارع الملك فهد، حي العليا، الرياض', // Replace with actual address
-                   // Optional: Add a 'View on Map' button if needed
-                  // trailing: TextButton(onPressed: (){}, child: Text('عرض الخريطة')),
-                ),
-                 const SizedBox(height: 16),
-
-                // --- Provider Info ---
-                if (booking.providerName != null) ...[
-                   _buildDetailRow(
-                      context: context,
-                      icon: Icons.person_pin_outlined,
-                      title: 'مزود الخدمة',
-                      // Custom value widget for provider with avatar
-                      valueWidget: Row(
-                         children: [
-                           CircleAvatar(
-                              radius: 14,
-                              backgroundColor: AppColors.lightGrey.withOpacity(0.3),
-                              backgroundImage: booking.providerAvatarUrl != null ? NetworkImage(booking.providerAvatarUrl!) : null,
-                              child: booking.providerAvatarUrl == null ? const Icon(Icons.person, size: 14, color: AppColors.grey) : null,
-                           ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                booking.providerName!,
-                                 style: textTheme.bodyLarge,
-                                 overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                         ],
-                      ),
-                   ),
-                  const Divider(height: 24),
-                ],
-
-                 // --- Booking ID ---
-                 _buildDetailRow(
-                  context: context,
-                  icon: Icons.tag,
-                  title: 'رقم الطلب',
-                  value: booking.id,
-                ),
-                const SizedBox(height: 16),
-
-                // --- Payment/Price Info --- (Placeholder)
-                 _buildDetailRow(
-                  context: context,
-                  icon: Icons.credit_card_outlined,
-                  title: 'التكلفة الإجمالية',
-                  value: '350 ريال سعودي', // Replace with actual price
-                  valueStyle: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
-                ),
-                 const SizedBox(height: 16),
-                  _buildDetailRow(
-                  context: context,
-                  icon: Icons.payment_outlined,
-                  title: 'حالة الدفع',
-                  value: 'مدفوع (Visa **** 1234)', // Replace with actual status
-                ),
-
-                const Divider(height: 30),
-
-                // --- Action Buttons (Conditional) ---
-                if (booking.status == BookingStatus.upcoming) ...[
-                   Row(
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('تفاصيل الطلب')),
+        body: detailsAsyncValue.when(
+          data: (booking) {
+            if (booking == null) {
+               return const Center(child: Text('لم يتم العثور على تفاصيل هذا الطلب.'));
+            }
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- Header: Service Name & Status ---
+                  Row(
+                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                     crossAxisAlignment: CrossAxisAlignment.start,
                      children: [
-                       Expanded(
-                         child: OutlinedButton( // Use OutlinedButton for secondary actions
-                           onPressed: () {
-                             // TODO: Implement Cancellation Logic (show confirmation dialog)
-                             print('Cancel Booking Tapped');
-                           },
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red),
-                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6.0)),
-                               padding: const EdgeInsets.symmetric(vertical: 12)
-                            ),
-                           child: const Text('إلغاء الطلب'),
-                         ),
-                       ),
-                       const SizedBox(width: 12),
-                        Expanded(
-                         child: PrimaryButton(
-                           onPressed: () {
-                             // TODO: Implement Reschedule Logic (e.g., open date/time picker)
-                              print('Reschedule Booking Tapped');
-                           },
-                           text: 'إعادة الجدولة',
-                         ),
-                       ),
+                        Expanded(child: Text(booking.serviceName, style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary))),
+                        Container(
+                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                           decoration: BoxDecoration(color: booking.statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                           child: Text(booking.statusDisplay, style: textTheme.bodyMedium?.copyWith(color: booking.statusColor, fontWeight: FontWeight.bold)),
+                        ),
                      ],
-                   )
+                  ),
+                  const SizedBox(height: 8),
+                  Text('رمز الطلب: ${booking.bookingCode}', style: textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary)),
+                  const Divider(height: 24),
+
+                  // --- Booking Details Section ---
+                  _buildDetailRow(context, Icons.calendar_today_outlined, 'تاريخ الطلب', dateFormat.format(booking.requestDate)),
+                  if (booking.scheduledDate != null)
+                     _buildDetailRow(context, Icons.event_available, 'موعد التنفيذ', dateFormat.format(booking.scheduledDate!) + (booking.scheduledTime != null ? ' - ${booking.scheduledTime!.format(context)}' : '')), // Format time
+                  if (booking.address != null)
+                      _buildDetailRow(context, Icons.location_on_outlined, 'العنوان', booking.address!),
+                   if (booking.serviceProviderName != null)
+                      _buildDetailRow(context, Icons.person_pin_outlined, 'مزود الخدمة', booking.serviceProviderName!),
+                  if (booking.notes != null && booking.notes!.isNotEmpty)
+                     _buildDetailRow(context, Icons.notes_outlined, 'الملاحظات', booking.notes!, isMultiline: true),
+
+                  const Divider(height: 24),
+
+                  // --- Action Buttons (Conditional) ---
+                   if (booking.status == BookingStatus.pending || booking.status == BookingStatus.confirmed)
+                      Center(
+                         child: OutlinedButton.icon(
+                           icon: const Icon(Icons.cancel_outlined),
+                           label: const Text('إلغاء الطلب'),
+                           style: OutlinedButton.styleFrom(foregroundColor: AppColors.accent, side: const BorderSide(color: AppColors.accent)),
+                           onPressed: () {
+                             // TODO: Implement cancel booking logic + confirmation dialog
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cancel Booking - Placeholder')));
+                           },
+                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                         child: TextButton.icon(
+                             icon: const Icon(Icons.support_agent_outlined),
+                             label: const Text('المساعدة بخصوص هذا الطلب'),
+                             onPressed: () {
+                               // TODO: Navigate to support, maybe passing booking code
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Contact Support - Placeholder')));
+                             },
+                         ),
+                      ),
                 ],
-
-                if (booking.status == BookingStatus.completed) ...[
-                   PrimaryButton(
-                     onPressed: () {
-                       // TODO: Navigate to Rating/Review Screen or Rebook Service
-                        print('Rate Service Tapped');
-                     },
-                     text: 'تقييم الخدمة',
-                     minWidth: double.infinity,
-                   ),
-                ],
-
-                 if (booking.status == BookingStatus.cancelled) ...[
-                   PrimaryButton(
-                     onPressed: () {
-                       // TODO: Navigate to Service screen to book again
-                        print('Book Again Tapped');
-                     },
-                     text: 'طلب الخدمة مرة أخرى',
-                     minWidth: double.infinity,
-                   ),
-                ]
-
-
-              ],
-            ),
-          );
-        },
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          error: (error, stack) => Center(child: Text('خطأ في تحميل التفاصيل: $error')),
+        ),
       ),
     );
   }
 
   // Helper widget for detail rows
-  Widget _buildDetailRow({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    String? value,
-    Widget? valueWidget, // Use this for custom value display
-    TextStyle? valueStyle,
-    Widget? trailing,
-  }) {
-    final textTheme = Theme.of(context).textTheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: AppColors.grey, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: textTheme.bodyMedium?.copyWith(color: AppColors.grey)),
-              const SizedBox(height: 4),
-              valueWidget ?? Text(value ?? '-', style: valueStyle ?? textTheme.bodyLarge),
-            ],
-          ),
+  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value, {bool isMultiline = false}) {
+     final textTheme = Theme.of(context).textTheme;
+     return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6.0),
+        child: Row(
+           crossAxisAlignment: isMultiline ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+           children: [
+              Icon(icon, size: 20, color: AppColors.primary.withOpacity(0.8)),
+              const SizedBox(width: 12),
+              Text('$label: ', style: textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500)),
+              const SizedBox(width: 4),
+              Expanded(child: Text(value, style: textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary))),
+           ],
         ),
-        if (trailing != null) ...[
-          const SizedBox(width: 8),
-          trailing,
-        ]
-      ],
-    );
+     );
   }
 }
